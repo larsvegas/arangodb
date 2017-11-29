@@ -39,7 +39,7 @@
 //
 // To get down (direction to root) from 4 to 5 you need to call getFirst Parent
 // on the SortNode(4) to receive a pointer to the LimitNode(5). If you want to
-// go up from 5 to 4 (away form root) you need to call getFirstDependency at
+// go up from 5 to 4 (away from root) you need to call getFirstDependency at
 // the LimitNode (5) to get a pointer to the SortNode(4).
 //
 // For most maybe all operations you will only need to operate on the
@@ -866,7 +866,7 @@ class LimitNode : public ExecutionNode {
   /// @brief tell the node to fully count what it will limit
   void setFullCount() { _fullCount = true; }
 
-  bool getFullCount() { return _fullCount; }
+  bool getFullCount() const { return _fullCount; }
 
   /// @brief return the offset value
   size_t offset() const { return _offset; }
