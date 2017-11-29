@@ -219,8 +219,10 @@ void prepareTraversalsRule(Optimizer* opt, std::unique_ptr<ExecutionPlan> plan,
 
 /// @brief moves simple subqueries one level higher
 void inlineSubqueriesRule(Optimizer*, std::unique_ptr<ExecutionPlan>, OptimizerRule const*);
-  
-void geoIndexRule(aql::Optimizer* opt, std::unique_ptr<aql::ExecutionPlan> plan, aql::OptimizerRule const* rule);
+
+
+void optimizeClusterLimitsToShardsRule(Optimizer*, std::unique_ptr<ExecutionPlan>, OptimizerRule const* );
+void geoIndexRule(Optimizer*, std::unique_ptr<aql::ExecutionPlan>, OptimizerRule const* );
 
 }  // namespace aql
 }  // namespace arangodb

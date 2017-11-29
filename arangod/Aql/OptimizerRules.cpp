@@ -4436,6 +4436,67 @@ void arangodb::aql::inlineSubqueriesRule(Optimizer* opt,
   opt->addPlan(std::move(plan), rule, modified);
 }
 
+void arangodb::aql::optimizeClusterLimitsToShardsRule(Optimizer* opt,
+                                             std::unique_ptr<ExecutionPlan> plan,
+                                             OptimizerRule const* rule) {
+  TRI_ASSERT(arangodb::ServerState::instance()->isCoordinator());
+  bool wasModified = false;
+
+  SmallVector<ExecutionNode*>::allocator_type::arena_type s;
+  SmallVector<ExecutionNode*> nodes{s};
+  std::vector<ExecutionNode::NodeType> const types = {ExecutionNode::GATHER};
+  plan->findNodesOfType(nodes, types, true);
+
+  for (auto& n : nodes) {
+
+    // numbered steps
+    //
+    // remoteNodeDep     (3) check that this node exists
+    // -- limitNode --   (4) insert new limit node - limit = oldLimit + oldOffset, offset = 0
+    // remoteNode        (2) check if this is a remote node
+    // gatherNode        (0) start here
+    // limit             (1) check if node is of type limit limit and has not _fullCount set to true
+    //
+    //(5) update dependencies so the new limitNode is connected to remoteNodeDep and remoteNode
+
+    LimitNode* original = nullptr;
+    // (1)
+    ExecutionNode* limitNode = n->getFirstParent();
+    if (!limitNode || limitNode->getType() != ExecutionNode::LIMIT || n->getParents().size() != 1) {
+      continue;
+    }
+    original = static_cast<LimitNode*>(limitNode);
+    if(original->getFullCount()){
+      continue;
+    }
+
+    // (2)
+    auto remoteNode = n->getFirstDependency();
+    if (!remoteNode || remoteNode->getType() != ExecutionNode::REMOTE || n->getDependencies().size() != 1) {
+      continue;
+    }
+
+    // (3)
+    auto remoteNodeDep = remoteNode->getFirstDependency();
+    if(!remoteNodeDep || remoteNode->getDependencies().size() != 1){
+      continue;
+    }
+
+    // (4) create copy of limit node
+    LimitNode* clone = new LimitNode(plan.get(), plan->nextId(), 0 /*offset*/, original->offset() + original->limit() /*limit*/ );
+    wasModified = true;
+    plan->registerNode(clone);
+
+    // (5) update dependencies
+    clone->addDependency(remoteNodeDep);
+    remoteNode->replaceDependency(remoteNodeDep,clone);
+  }
+
+  opt->addPlan(std::move(plan), rule, wasModified);
+}
+
+
+
 struct GeoIndexInfo {
   operator bool() const { return distanceNode && valid; }
   void invalidate() { valid = false; }
