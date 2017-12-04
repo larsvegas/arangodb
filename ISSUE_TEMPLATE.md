@@ -33,7 +33,7 @@ On this operating system:
 
 
 ### this is an AQL-related issue:
-[ ] I'm using graph features
+- [ ] I'm using graph features
 
 I'm issuing AQL via:
 - [ ] web interface with this browser:     running on this OS:
